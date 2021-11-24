@@ -1,1 +1,1 @@
-# twitter_cliu
+# Django-Twitter Project
