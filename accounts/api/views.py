@@ -86,7 +86,7 @@ class AccountViewSet(viewsets.ViewSet):
             return Response({
                 'success': False,
                 'message': 'Please check input',
-                'errors': {'username': ['User does not exists']},
+                'errors': {'username': ['User does not exist']},
             }, status=400)
 
         # check password
@@ -120,4 +120,4 @@ class AccountViewSet(viewsets.ViewSet):
         return Response({
             'success': True,
             'user': UserSerializer(user).data
-        })
+        }, status=201)
