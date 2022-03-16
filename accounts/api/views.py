@@ -39,7 +39,10 @@ class AccountViewSet(viewsets.ViewSet):
 
     @action(methods=["GET"], detail=False)
     def login_status(self, request: Request) -> Response:
-        data = {'has_logged_in': request.user.is_authenticated}
+        data = {
+            'has_logged_in': request.user.is_authenticated,
+            'ip': request.META['REMOTE_ADDR']
+        }
         # If we try to get login_status without login, we are marked as
         # an anonymous user
         if request.user.is_authenticated:
