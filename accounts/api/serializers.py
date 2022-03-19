@@ -6,7 +6,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # Not working if put 'url' in fields
-        fields = ['username', 'email', 'password']
+        fields = ['id', 'username', 'email', 'password']
 
 
 class LoginSerializer(serializers.Serializer):

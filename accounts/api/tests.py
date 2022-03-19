@@ -1,6 +1,5 @@
-from django.test import TestCase
 from rest_framework.test import APIClient
-from django.contrib.auth.models import User
+from testing.testcases import TestCase
 
 
 LOGIN_STATUS_URL = '/api/accounts/login_status/'
@@ -19,11 +18,6 @@ class AccountApiTests(TestCase):
             email='admin@jiuzhang.com',
             password='correct password',
         )
-
-    def create_user(self, username, email, password):
-        # not User.objects.create()
-        # Password needs encryption, username and email need normalization
-        return User.objects.create_user(username, email, password)
 
     def test_login(self):
         # login should be a post request, test whether it handles a get request properly
