@@ -1,0 +1,22 @@
+from newsfeeds.models import NewsFeed
+from friendships.services import FriendshipService
+
+
+class NewsFeedService(object):
+    @classmethod
+    def fanout_to_followers(cls, tweet):
+        # wrong method:
+        # Don't put DB operations in a for loop - low efficiency
+        # for follower in FriendshipService.get_followers(tweet.user):
+        #     NewsFeed.objects.create(
+        #         user=follower,
+        #         tweet=tweet,
+        #     )
+
+        # a good practice:
+        newsfeeds = [
+            NewsFeed(user=follower, tweet=tweet)
+            for follower in FriendshipService.get_followers(tweet.user)
+        ]
+        newsfeeds.append(NewsFeed(user=tweet.user, tweet=tweet))
+        NewsFeed.objects.bulk_create(newsfeeds)
