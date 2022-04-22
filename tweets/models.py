@@ -14,6 +14,7 @@ class Tweet(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        # 这个联合索引可以方便地找出某个user发的所有的帖子
         index_together = (('user', 'created_at'),)
         ordering = ('user', '-created_at')
 

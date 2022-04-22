@@ -1,4 +1,5 @@
 from accounts.api.serializers import UserSerializer
+from django.contrib.auth.models import User
 from friendships.models import Friendship
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -13,9 +14,16 @@ class FriendshipSerializerForCreate(serializers.ModelSerializer):
         fields = ('from_user_id', 'to_user_id')
 
     def validate(self, attrs):
+        # attrs是客户端传进来的，应该是同一种类型，所以可以直接比较
         if attrs['from_user_id'] == attrs['to_user_id']:
             raise ValidationError({
                 'message': 'from_user_id and to_user_id should be different'
+            })
+
+        # 此处无论attrs['to_user_id']是int还是str，Django都能handle
+        if User.objects.filter(id=attrs['to_user_id']).exists():
+            raise ValidationError({
+                'message': 'You cannot follow a non-existing user.'
             })
         return attrs
 
