@@ -29,6 +29,23 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '172.17.0.1']
 # INTERNAL_IPS
 INTERNAL_IPS = ['127.0.0.1', 'localhost', '172.17.0.1']
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'handlers': ['console'],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
+    }
+}
 
 # Application definition
 
@@ -44,6 +61,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'tweets',
     'friendships',
+    'newsfeeds',
 ]
 
 REST_FRAMEWORK = {
