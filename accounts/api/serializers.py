@@ -6,7 +6,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # Not working if put 'url' in fields
-        fields = ['id', 'username', 'email', 'password']
+        fields = ('id', 'username', 'email', 'password')
 
 
 class LoginSerializer(serializers.Serializer):
@@ -23,16 +23,16 @@ class SignupSerializer(serializers.ModelSerializer):
         model = User
         fields = ('username', 'email', 'password')
 
-    def validate(self, data):
-        if User.objects.filter(username=data.get('username').lower()).exists():
+    def validate(self, attrs):
+        if User.objects.filter(username=attrs.get('username').lower()).exists():
             raise exceptions.ValidationError({
                 'username': ['This username has been occupied.']
             })
-        if User.objects.filter(email=data.get('email').lower()).exists():
+        if User.objects.filter(email=attrs.get('email').lower()).exists():
             raise exceptions.ValidationError({
                 'email': ['This email has been occupied.']
             })
-        return data
+        return attrs
 
     def create(self, validated_data):
         username = validated_data.get('username').lower()
