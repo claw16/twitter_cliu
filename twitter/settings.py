@@ -50,18 +50,19 @@ LOGGING = {
 # Application definition
 
 INSTALLED_APPS = [
+    'accounts',  # project
+    'comments',
+    'debug_toolbar',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.sessions',
     'django.contrib.staticfiles',
-    'rest_framework',  # third-party
-    'accounts',  # project
-    'debug_toolbar',
-    'tweets',
     'friendships',
     'newsfeeds',
+    'rest_framework',  # third-party
+    'tweets',
 ]
 
 REST_FRAMEWORK = {

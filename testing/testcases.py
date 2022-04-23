@@ -1,8 +1,9 @@
-from django.test import TestCase as DjangoTestCase
 from django.contrib.auth.models import User
-from tweets.models import Tweet
+from django.test import TestCase as DjangoTestCase
 from friendships.models import Friendship
 from rest_framework.test import APIClient
+from tweets.models import Tweet
+from comments.models import Comment
 
 
 class TestCase(DjangoTestCase):
@@ -37,3 +38,8 @@ class TestCase(DjangoTestCase):
         for i in range(3):
             following = self.create_user(f'bob_following_{i}')
             Friendship.objects.create(from_user=self.bob, to_user=following)
+
+    def create_comment(self, user, tweet, content=None):
+        if content is None:
+            content = 'This is a default Tweet content.'
+            return Comment.objects.create(user=user, tweet=tweet, content=content)

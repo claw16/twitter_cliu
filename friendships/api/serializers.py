@@ -21,7 +21,7 @@ class FriendshipSerializerForCreate(serializers.ModelSerializer):
             })
 
         # 此处无论attrs['to_user_id']是int还是str，Django都能handle
-        if User.objects.filter(id=attrs['to_user_id']).exists():
+        if not User.objects.filter(id=attrs['to_user_id']).exists():
             raise ValidationError({
                 'message': 'You cannot follow a non-existing user.'
             })
