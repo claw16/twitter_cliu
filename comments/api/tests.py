@@ -1,5 +1,8 @@
-from testing.testcases import TestCase
+from comments.models import Comment
+from django.utils import timezone
 from rest_framework import status
+from rest_framework.test import APIClient
+from testing.testcases import TestCase
 
 
 COMMENT_URL = '/api/comments/'
@@ -40,3 +43,60 @@ class CommentApiTests(TestCase):
         self.assertEqual(response.data['user']['id'], self.ann.id)
         self.assertEqual(response.data['tweet_id'], self.tweet.id)
         self.assertEqual(response.data['content'], '1')
+
+    def test_destroy(self):
+        comment = self.create_comment(self.ann, self.tweet)
+        url = '{}{}/'.format(COMMENT_URL, comment.id)
+
+        # 匿名无法删除
+        response = self.anonymous_client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 非本人无法删除
+        response = self.bob_client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 本人可以删除
+        count = Comment.objects.count()
+        response = self.ann_client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(count - 1, Comment.objects.count())
+
+    def test_update(self):
+        comment = self.create_comment(self.ann, self.tweet, 'before')
+        another_tweet = self.create_tweet(self.bob)
+        url = '{}{}/'.format(COMMENT_URL, comment.id)
+
+        # 使用put的情况下
+        # 匿名不可更新
+        response = self.anonymous_client.put(url, {'content': 'after'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 非本人不可更新
+        response = self.bob_client.put(url, {'content': 'after'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        comment.refresh_from_db()
+        self.assertNotEqual(comment.content, 'after')
+
+        # 不能更新除了 content 之外的内容，静默处理，只更新 content
+        before_updated_at = comment.updated_at
+        before_created_at = comment.created_at
+        now = timezone.now()
+        response = self.ann_client.put(
+            url,
+            {
+                'content': 'after',  # 只有content会被更新
+                'user_id': self.bob.id,
+                'tweet_id': another_tweet.id,
+                'created_at': now,
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        comment.refresh_from_db()
+        self.assertEqual(comment.content, 'after')
+        self.assertEqual(comment.user, self.ann)
+        self.assertEqual(comment.tweet, self.tweet)
+        self.assertEqual(comment.created_at, before_created_at)
+        self.assertNotEqual(comment.created_at, now)
+        self.assertTrue(comment.updated_at > before_updated_at, True)
+
