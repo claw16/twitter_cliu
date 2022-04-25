@@ -100,3 +100,33 @@ class CommentApiTests(TestCase):
         self.assertNotEqual(comment.created_at, now)
         self.assertTrue(comment.updated_at > before_updated_at, True)
 
+    def test_list(self):
+        # 必须带 tweet_id
+        response = self.anonymous_client.get(COMMENT_URL)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 带上 tweet_id 可以访问
+        # 一开始没有评论
+        response = self.anonymous_client.get(COMMENT_URL, {
+            'tweet_id': self.tweet.id,
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['comments']), 0)
+
+        # 评论按照时间顺序排序
+        self.create_comment(self.ann, self.tweet, '1')
+        self.create_comment(self.bob, self.tweet, '2')
+        self.create_comment(self.bob, self.create_tweet(self.bob), '3')
+        response = self.anonymous_client.get(COMMENT_URL, {
+            'tweet_id': self.tweet.id,
+        })
+        self.assertEqual(len(response.data['comments']), 2)
+        self.assertEqual(response.data['comments'][0]['content'], '1')
+        self.assertEqual(response.data['comments'][1]['content'], '2')
+
+        # 同时踢动 user_id 和 tweet_id 只有 tweet_id 会在 filter 中生效
+        response = self.anonymous_client.get(COMMENT_URL, {
+            'tweet_id': self.tweet.id,
+            'user_id': self.ann.id,
+        })
+        self.assertEqual(len(response.data['comments']), 2)

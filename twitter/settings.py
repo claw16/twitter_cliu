@@ -29,45 +29,32 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '172.17.0.1']
 # INTERNAL_IPS
 INTERNAL_IPS = ['127.0.0.1', 'localhost', '172.17.0.1']
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django.db.backends': {
-            'handlers': ['console'],
-            'propagate': True,
-            'level': 'DEBUG',
-        },
-    }
-}
-
 # Application definition
 
 INSTALLED_APPS = [
-    'accounts',  # project
-    'comments',
-    'debug_toolbar',
+    # django default
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.messages',
     'django.contrib.sessions',
     'django.contrib.staticfiles',
+    # third-party packages
+    'django_filters',
+    'debug_toolbar',
+    'rest_framework',
+    # project apps
+    'accounts',
+    'comments',
     'friendships',
     'newsfeeds',
-    'rest_framework',  # third-party
     'tweets',
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend',],
 }
 
 MIDDLEWARE = [
@@ -154,3 +141,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# 把本地的设置，例如debug配置，放入local_settings.py，不push到remote repo
+# 这样在production环境中不会引入这些设置
+try:
+    from .local_settings import *
+except:
+    pass
