@@ -15,6 +15,33 @@ class CommentViewSet(viewsets.GenericViewSet):
     # 不实现 retrieve （查询单个comment） 的方法，因为没有这个需求
     serializer_class = CommentSerializerForCreate
     queryset = Comment.objects.all()
+    # https://www.django-rest-framework.org/api-guide/filtering/
+    # 这里表示可以用上面的 queryset 来 filter 'tweet_id'
+    # 要得到 filter 之后的 queryset， 见 list()
+    filterset_fields = ('tweet_id',)
+
+    def list(self, request, *args, **kwargs):
+        # request.query_params['tweet_id'] -> GET /api/comments/?tweet_id=1 -> list
+        if 'tweet_id' not in request.query_params:
+            return Response(
+                {
+                    'message': 'missing tweet_id in request',
+                    'success': False,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        queryset = self.get_queryset()  # 取出本 class 的queryset
+        # 根据 filterset_fields 里面指定的属性对 queryset 进行筛选
+        comments = self.filter_queryset(queryset).order_by('created_at')
+        serializer = CommentSerializer(comments, many=True)
+        # 另一种写法：
+        # tweet_id = request.query_params['tweet_id']
+        # comments = Comment.objects.filter(tweet_id=tweet_id)
+        # serializer = CommentSerializer(comments, many=True)
+        return Response(
+            {'comments': serializer.data},
+            status=status.HTTP_200_OK,
+        )
 
     def get_permissions(self):
         """
@@ -28,6 +55,7 @@ class CommentViewSet(viewsets.GenericViewSet):
             # 就不再继续后面的IsObjectOwner的验证
             # 这里如果不加IsAuthenticated，结果也是一样的
             return [IsAuthenticated(), IsObjectOwner()]
+        # if 'list', AllowAny
         return [AllowAny()]
 
     def create(self, request, *args, **kwargs):
