@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from utils.time_helpers import utc_now
+# from comments.models import Comment
 
 
 class Tweet(models.Model):
@@ -22,6 +23,12 @@ class Tweet(models.Model):
     def hours_to_now(self):
         # datetime.now 不带时区信息，需要加上utc的时区信息
         return (utc_now() - self.created_at).seconds // 3600
+
+    # 在 Tweet 中获得对应的 comments
+    # @property
+    # def comments(self):
+    #     return self.comment_set.all()
+    #     return Comment.objects.filter(tweet=self)
 
     def __str__(self):
         # print(tweet instance)

@@ -8,6 +8,7 @@ from comments.api.serializers import (
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from utils.decorators import required_params
 
 
 class CommentViewSet(viewsets.GenericViewSet):
@@ -20,16 +21,17 @@ class CommentViewSet(viewsets.GenericViewSet):
     # 要得到 filter 之后的 queryset， 见 list()
     filterset_fields = ('tweet_id',)
 
+    @required_params(params=['tweet_id'])
     def list(self, request, *args, **kwargs):
         # request.query_params['tweet_id'] -> GET /api/comments/?tweet_id=1 -> list
-        if 'tweet_id' not in request.query_params:
-            return Response(
-                {
-                    'message': 'missing tweet_id in request',
-                    'success': False,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # if 'tweet_id' not in request.query_params:
+        #     return Response(
+        #         {
+        #             'message': 'missing tweet_id in request',
+        #             'success': False,
+        #         },
+        #         status=status.HTTP_400_BAD_REQUEST,
+        #     )
         queryset = self.get_queryset()  # 取出本 class 的queryset
         # 根据 filterset_fields 里面指定的属性对 queryset 进行筛选
         comments = self.filter_queryset(queryset).order_by('created_at')
