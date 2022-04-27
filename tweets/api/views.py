@@ -1,9 +1,14 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from tweets.api.serializers import TweetSerializer, TweetCreateSerializer
+from tweets.api.serializers import (
+    TweetSerializer,
+    TweetCreateSerializer,
+    TweetSerializerWithComments
+)
 from tweets.models import Tweet
 from newsfeeds.services import NewsFeedService
+from utils.decorators import required_params
 
 
 class TweetViewSet(viewsets.GenericViewSet,
@@ -16,16 +21,17 @@ class TweetViewSet(viewsets.GenericViewSet,
     serializer_class = TweetCreateSerializer
 
     def get_permissions(self):
-        if self.action == 'list':
+        if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         return [IsAuthenticated()]
 
+    @required_params(params=['user_id'])
     def list(self, request, *args, **kwargs):
         """
         Re-write list method, only list `user_id`'s tweets
         """
-        if 'user_id' not in request.query_params:
-            return Response('missing user_id', status=400)
+        # if 'user_id' not in request.query_params:
+        #     return Response('missing user_id', status=400)
 
         # SQL statement:
         # select * from twitter_tweets
@@ -58,3 +64,9 @@ class TweetViewSet(viewsets.GenericViewSet,
         tweet = serializer.save()  # save to DB
         NewsFeedService.fanout_to_followers(tweet)
         return Response(TweetSerializer(tweet).data, status=201)
+
+    def retrieve(self, request, *args, **kwargs):
+        # <HOMEWORK 1> 通过某个query参数with_all_comments来决定是否需要带上所有comments
+        # <HOMEWORK 2> 通过某个query参数with_preview_comments来决定是否带上前3条comments
+        tweet = self.get_object()
+        return Response(TweetSerializerWithComments(tweet).data)
