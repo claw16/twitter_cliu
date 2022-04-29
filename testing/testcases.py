@@ -24,7 +24,7 @@ class TestCase(DjangoTestCase):
             content = 'default tweet content'
         return Tweet.objects.create(user=user, content=content)
 
-    def make_up_friendships(self):
+    def create_user_and_client(self):
         self.anonymous_client = APIClient()
         self.ann = self.create_user('ann')
         self.bob = self.create_user('bob')
@@ -33,6 +33,9 @@ class TestCase(DjangoTestCase):
         self.ann_client.force_authenticate(self.ann)
         self.bob_client.force_authenticate(self.bob)
 
+    def make_up_friendships(self):
+        if getattr(self, "ann", None) is None:
+            self.create_user_and_client()
         # create followings and followers for bob
         for i in range(2):
             follower = self.create_user(f'bob_follower_{i}')
