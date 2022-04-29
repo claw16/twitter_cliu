@@ -11,11 +11,16 @@ class CommentModelTests(TestCase):
         self.assertNotEqual(self.comment.__str__(), None)
 
     def test_like_set(self):
-        self.create_like(self.user, self.comment)
+        first_like = self.create_like(self.user, self.comment)
         self.assertEqual(len(self.comment.like_set), 1)
 
-        self.create_like(self.user, self.comment)
+        second_like = self.create_like(self.user, self.comment)
         self.assertEqual(len(self.comment.like_set), 1)
 
-        self.create_like(self.create_user('bob'), self.comment)
+        self.bob = self.create_user('bob')
+        self.create_like(self.bob, self.comment)
         self.assertEqual(len(self.comment.like_set), 2)
+
+        likes = self.comment.like_set
+        self.assertEqual(likes[0].user, self.bob)
+        self.assertEqual(likes[1].user, self.user)
