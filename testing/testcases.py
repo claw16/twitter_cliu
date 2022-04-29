@@ -4,6 +4,8 @@ from friendships.models import Friendship
 from rest_framework.test import APIClient
 from tweets.models import Tweet
 from comments.models import Comment
+from likes.models import Like
+from django.contrib.contenttypes.models import ContentType
 
 
 class TestCase(DjangoTestCase):
@@ -43,3 +45,12 @@ class TestCase(DjangoTestCase):
         if content is None:
             content = 'This is a default Tweet content.'
         return Comment.objects.create(user=user, tweet=tweet, content=content)
+
+    def create_like(self, user, target):
+        # target is a comment or a tweet
+        instance, _ = Like.objects.get_or_create(
+            content_type=ContentType.objects.get_for_model(target.__class__),
+            object_id=target.id,
+            user=user,
+        )
+        return instance

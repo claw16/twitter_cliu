@@ -1,5 +1,7 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.db import models
+from likes.models import Like
 from utils.time_helpers import utc_now
 # from comments.models import Comment
 
@@ -29,6 +31,13 @@ class Tweet(models.Model):
     # def comments(self):
     #     return self.comment_set.all()
     #     return Comment.objects.filter(tweet=self)
+
+    @property
+    def like_set(self):
+        return Like.objects.filter(
+            content_type=ContentType.objects.get_for_model(Tweet),
+            object_id=self.id,
+        ).order_by('-created_at')
 
     def __str__(self):
         # print(tweet instance)
