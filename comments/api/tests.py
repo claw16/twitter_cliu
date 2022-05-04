@@ -6,6 +6,9 @@ from testing.testcases import TestCase
 
 
 COMMENT_URL = '/api/comments/'
+TWEET_LIST_API = '/api/tweets/'
+TWEET_DETAIL_API = '/api/tweets/{}/'
+NEWSFEED_LIST_API = '/api/newsfeeds/'
 
 
 class CommentApiTests(TestCase):
@@ -130,3 +133,24 @@ class CommentApiTests(TestCase):
             'user_id': self.ann.id,
         })
         self.assertEqual(len(response.data['comments']), 2)
+
+    def test_comment_count(self):
+        # test tweet detail API
+        tweet = self.create_tweet(self.ann)
+        url = TWEET_DETAIL_API.format(tweet.id)
+        response = self.ann_client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['comments_count'], 0)
+
+        # test tweet list api
+        self.create_comment(self.ann, tweet)
+        response = self.bob_client.get(TWEET_LIST_API, {'user_id': self.ann.id})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['tweets'][0]['comments_count'], 1)
+
+        # test newsfeed list api
+        self.create_comment(self.bob, tweet)
+        self.create_newsfeed(self.bob, tweet)
+        response = self.bob_client.get(NEWSFEED_LIST_API)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['newsfeeds'][0]['tweet']['comments_count'], 2)
