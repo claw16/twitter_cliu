@@ -1,11 +1,12 @@
+from comments.models import Comment
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase as DjangoTestCase
 from friendships.models import Friendship
+from likes.models import Like
+from newsfeeds.models import NewsFeed
 from rest_framework.test import APIClient
 from tweets.models import Tweet
-from comments.models import Comment
-from likes.models import Like
-from django.contrib.contenttypes.models import ContentType
 
 
 class TestCase(DjangoTestCase):
@@ -57,3 +58,6 @@ class TestCase(DjangoTestCase):
             user=user,
         )
         return instance
+
+    def create_newsfeed(self, user, tweet):
+        return NewsFeed.objects.create(user=user, tweet=tweet)

@@ -3,8 +3,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from tweets.api.serializers import (
     TweetSerializer,
-    TweetCreateSerializer,
-    TweetSerializerWithComments
+    TweetSerializerForCreate,
+    TweetSerializerForDetail
 )
 from tweets.models import Tweet
 from newsfeeds.services import NewsFeedService
@@ -18,7 +18,7 @@ class TweetViewSet(viewsets.GenericViewSet,
     API endpoint that allows users to create and list tweets
     """
     queryset = Tweet.objects.all()
-    serializer_class = TweetCreateSerializer
+    serializer_class = TweetSerializerForCreate
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -42,7 +42,11 @@ class TweetViewSet(viewsets.GenericViewSet,
         tweets = Tweet.objects.filter(
             user_id=request.query_params['user_id']
         ).order_by('-created_at')
-        serializer = TweetSerializer(tweets, many=True)
+        serializer = TweetSerializer(
+            tweets,
+            many=True,
+            context={'request': request},
+        )
         # JSON responses are commonly used, instead of lists
         return Response({'tweets': serializer.data})
 
@@ -51,7 +55,7 @@ class TweetViewSet(viewsets.GenericViewSet,
         Re-write create method to use current login user
         as the default user
         """
-        serializer = TweetCreateSerializer(
+        serializer = TweetSerializerForCreate(
             data=request.data,
             context={'request': request}
         )
@@ -63,10 +67,13 @@ class TweetViewSet(viewsets.GenericViewSet,
             }, status=400)
         tweet = serializer.save()  # save to DB
         NewsFeedService.fanout_to_followers(tweet)
-        return Response(TweetSerializer(tweet).data, status=201)
+        return Response(TweetSerializer(tweet, context={'request': request}).data, status=201)
 
     def retrieve(self, request, *args, **kwargs):
         # <HOMEWORK 1> 通过某个query参数with_all_comments来决定是否需要带上所有comments
         # <HOMEWORK 2> 通过某个query参数with_preview_comments来决定是否带上前3条comments
         tweet = self.get_object()
-        return Response(TweetSerializerWithComments(tweet).data)
+        return Response(TweetSerializerForDetail(
+            tweet,
+            context={'request': request}).data,
+        )
