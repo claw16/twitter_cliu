@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     # third-party packages
     'django_filters',
     'debug_toolbar',
+    'notifications',
     'rest_framework',
     # project apps
     'accounts',
