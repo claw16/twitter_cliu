@@ -11,7 +11,7 @@ from friendships.api.serializers import (
 from django.contrib.auth.models import User
 
 
-class FriendshipViewSet(viewsets.GenericViewSet):
+class FriendshipViewSet(viewsets.GenericViewSet, viewsets.mixins.ListModelMixin):
     # 当method是POST的时候，程序会去查询当前class下的serializer_class或者get_serializer_class()
     # 如果都没有的话会报错
     serializer_class = FriendshipSerializerForCreate
