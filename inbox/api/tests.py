@@ -101,3 +101,49 @@ class NotificationApiTests(TestCase):
         self.ann_client.post(READ_ALL_URL)
         response = self.ann_client.get(NOTIFICATION_URL, {'unread': True})
         self.assertEqual(response.data['count'], 0)
+
+    def test_update(self):
+        self.bob_client.post(LIKE_URL, {
+            'content_type': 'tweet',
+            'object_id': self.ann_tweet.id,
+        })
+        comment = self.create_comment(self.ann, self.ann_tweet)
+        self.bob_client.post(LIKE_URL, {
+            'content_type': 'comment',
+            'object_id': comment.id,
+        })
+        notification = self.ann.notifications.first()
+        url = '/api/notifications/{}/'.format(notification.id)
+
+        # post is not allowed
+        response = self.ann_client.post(url, {'unread': False})
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+        # anonymous is not allowed
+        response = self.anonymous_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        # notification status cannot be modified by another user
+        response = self.bob_client.put(url, {'unread': False})
+        # 404 not 403 because the queryset is filtered based on current login user
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # a good mark-as-read
+        response = self.ann_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.ann_client.get(UNREAD_COUNT_URL)
+        self.assertEqual(response.data['unread_count'], 1)
+
+        # mark it as unread again
+        self.ann_client.put(url, {'unread': True})
+        response = self.ann_client.get(UNREAD_COUNT_URL)
+        self.assertEqual(response.data['unread_count'], 2)
+
+        # 'unread' is required
+        response = self.ann_client.put(url, {'verb': 'verb'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # not allow to modify other info except 'unread'
+        response = self.ann_client.put(url, {'unread': True, 'verb': 'a new verb'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        notification.refresh_from_db()
+        self.assertNotEqual(notification.verb, 'a new verb')
