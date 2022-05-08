@@ -1,3 +1,11 @@
-from django.test import TestCase
+from testing.testcases import TestCase
+from accounts.models import UserProfile
 
-# Create your tests here.
+
+class UserProfileTests(TestCase):
+    def test_profile_property(self):
+        ann = self.create_user('ann')
+        self.assertEqual(UserProfile.objects.count(), 0)
+        ann_profile = ann.profile
+        self.assertEqual(isinstance(ann_profile, UserProfile), True)
+        self.assertEqual(UserProfile.objects.count(), 1)

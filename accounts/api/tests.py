@@ -1,3 +1,4 @@
+from accounts.models import UserProfile
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
 
@@ -139,6 +140,11 @@ class AccountApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['user']['username'], 'someone')
         self.assertEqual(response.data['user']['email'], 'someone@jiuzhang.com')
+
+        # test create user profile
+        user_id = response.data['user']['id']
+        profile = UserProfile.objects.filter(user_id=user_id).first()
+        self.assertNotEqual(profile, None)
 
         # test login status after signup
         response = self.client.get(LOGIN_STATUS_URL)
