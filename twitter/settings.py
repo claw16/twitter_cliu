@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 from pathlib import Path
+import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -138,11 +139,25 @@ USE_L10N = True
 
 USE_TZ = True
 
+# media 的作用适用于存放被用户上传的文件信息
+# 当我们使用默认 FileSystemStorage 作为 DEFAULT_FILE_STORAGE 的时候
+# 文件会被默认上传到 MEDIA_ROOT 指定的目录下
+# media 和 static 的区别是：
+# - static 里通常是 css,js 文件之类的静态代码文件，是用户可以直接访问的代码文件
+# - media 里使用户上传的数据文件，而不是代码
+MEDIA_ROOT = 'media/'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# 设置存储用户上传文件的 storage 文件系统
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'  # AWS S3
+# 测试环境用本地文件系统
+is_testing = ((' '.join(sys.argv)).find('manage.py test') != -1)
+if is_testing:
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'  # local file storage
 
 # 把本地的设置，例如debug配置，放入local_settings.py，不push到remote repo
 # 这样在production环境中不会引入这些设置
