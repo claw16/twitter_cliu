@@ -1,6 +1,8 @@
+from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework import status
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
-from tweets.models import Tweet
+from tweets.models import Tweet, TweetPhoto
 
 
 # `/` is required otherwise --> 303 redirect
@@ -22,7 +24,6 @@ class TweetApiTests(TestCase):
         self.user2 = self.create_user('user2', 'user2@jiuzhang.com')
         self.tweets2 = [self.create_tweet(self.user2) for i in range(2)]
 
-
     def test_list_api(self):
         # if not user_id, 400
         response = self.anonymous_client.get(TWEET_LIST_API)
@@ -38,7 +39,6 @@ class TweetApiTests(TestCase):
         # test tweets orders, 新创建的在前面
         self.assertEqual(response.data['tweets'][0]['id'], self.tweets2[1].id)
         self.assertEqual(response.data['tweets'][1]['id'], self.tweets2[0].id)
-
 
     def test_create_api(self):
         # must login before creating
@@ -64,7 +64,74 @@ class TweetApiTests(TestCase):
         self.assertEqual(response.data['user']['id'], self.user1.id)
         self.assertEqual(Tweet.objects.count(), tweets_count + 1)
 
-    def test_retieve(self):
+    def test_create_with_files(self):
+        # post a tweet without 'files' in request data
+        response = self.user1_client.post(TWEET_CREATE_API, {
+            'content': 'a selfie',
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(TweetPhoto.objects.count(), 0)
+
+        # upload empty file list
+        response = self.user1_client.post(TWEET_CREATE_API, {
+            'content': 'a selfie',
+            'files': [],
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(TweetPhoto.objects.count(), 0)
+
+        # upload a single file
+        file = SimpleUploadedFile(
+            name='selfie.jpg',
+            content=str.encode('a fake img'),
+            content_type='image/jpeg',
+        )
+        response = self.user1_client.post(TWEET_CREATE_API, {
+            'content': 'a selfie',
+            'files': [file],
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(TweetPhoto.objects.count(), 1)
+
+        # upload multi photos
+        files = [SimpleUploadedFile(
+            name=f'selfie{i}.jpg',
+            content=str.encode(f'selfie {i}'),
+            content_type='image/jpeg',
+        ) for i in range(2)]
+        response = self.user1_client.post(TWEET_CREATE_API, {
+            'content': '2 selfies',
+            'files': files,
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(TweetPhoto.objects.count(), 3)
+
+        # make sure photo urls are included by using retrieve api
+        retrieve_url = TWEET_RETRIEVE_API.format(response.data['id'])
+        response = self.user1_client.get(retrieve_url)
+        self.assertEqual(len(response.data['photo_urls']), 2)
+        self.assertEqual('selfie0' in response.data['photo_urls'][0], True)
+        self.assertEqual('selfie1' in response.data['photo_urls'][1], True)
+        # test again using list api
+        response = self.anonymous_client.get(TWEET_LIST_API, {'user_id': self.user1.id})
+        self.assertEqual(len(response.data['tweets'][0]['photo_urls']), 2)
+        self.assertEqual('selfie0' in response.data['tweets'][0]['photo_urls'][0], True)
+        self.assertEqual('selfie1' in response.data['tweets'][0]['photo_urls'][1], True)
+
+        # upload more photos than the limit
+        files = [SimpleUploadedFile(
+            name=f'selfie{i}.jpg',
+            content=str.encode(f'selfie {i}'),
+            content_type='image/jpeg',
+        ) for i in range(10)]
+        response = self.user1_client.post(TWEET_CREATE_API, {
+            'content': '10 selfies',
+            'files': files,
+        })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(TweetPhoto.objects.count(), 3)
+
+    def test_retrieve(self):
         # tweet with id=-1 doesn't exist
         url = TWEET_RETRIEVE_API.format(-1)
         response = self.anonymous_client.get(url)
