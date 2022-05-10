@@ -1,4 +1,4 @@
-from accounts.api.serializers import UserSerializer
+from accounts.api.serializers import UserSerializerForFriendship
 from django.contrib.auth.models import User
 from friendships.models import Friendship
 from rest_framework import serializers
@@ -41,7 +41,7 @@ class FriendshipSerializerForCreate(serializers.ModelSerializer):
 # 在这个例子中就是 Friendship.from_user
 # https://www.django-rest-framework.org/api-guide/serializers/#specifying-fields-explicitly
 class FollowerSerializer(serializers.ModelSerializer):
-    user = UserSerializer(source='from_user')
+    user = UserSerializerForFriendship(source='from_user')
     created_at = serializers.DateTimeField()
 
     class Meta:
@@ -50,7 +50,7 @@ class FollowerSerializer(serializers.ModelSerializer):
 
 
 class FollowingSerializer(serializers.ModelSerializer):
-    user = UserSerializer(source='to_user')
+    user = UserSerializerForFriendship(source='to_user')
     created_at = serializers.DateTimeField()
 
     class Meta:
