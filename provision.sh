@@ -16,7 +16,7 @@ fi
 
 sudo dpkg -i mysql-apt-config_0.8.15-1_all.deb
 sudo DEBIAN_FRONTEND=noninteractivate apt-get install -y mysql-server
-sudo apt-get install -y libmysqlclient-dev
+sudo apt-get install -y libmysqlclient-dev # for django init setup
 
 if [ ! -f "/usr/bin/pip" ]; then
   sudo apt-get install -y python3-pip
