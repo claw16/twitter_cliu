@@ -1,14 +1,15 @@
+from django.contrib.auth.models import User
+from friendships.api.paginations import FriendshipPagination
+from friendships.api.serializers import (
+    FollowerSerializer,
+    FollowingSerializer,
+    FriendshipSerializerForCreate,
+)
+from friendships.models import Friendship
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from friendships.models import Friendship
-from friendships.api.serializers import (
-    FollowingSerializer,
-    FollowerSerializer,
-    FriendshipSerializerForCreate,
-)
-from django.contrib.auth.models import User
 
 
 class FriendshipViewSet(viewsets.GenericViewSet):
@@ -21,24 +22,25 @@ class FriendshipViewSet(viewsets.GenericViewSet):
     # 因为 detail=True 的 actions 会默认先去调用 get_object() 也就是
     # queryset.filter(pk=1) 查询一下这个 object 在不在
     queryset = User.objects.all()
+    # 一般来说，不同的view所需要的pagination规则是不同的，一般都需要自定义
+    pagination_class = FriendshipPagination
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     def followers(self, request, pk):
         friendships = Friendship.objects.filter(to_user_id=pk).order_by('-created_at')
-        serializer = FollowerSerializer(friendships, many=True)
-        return Response(
-            {'followers': serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        # 这里的 self.paginate_queryset() 先把 friendships 这个 queryset 传给
+        # GenericAPIView 的 paginate_queryset, 它会去调用 PageNumberPagination 下的
+        # paginate_queryset(queryset, request, self) 来返回请求页面的数据
+        page = self.paginate_queryset(friendships)
+        serializer = FollowerSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     def followings(self, request, pk):
         friendships = Friendship.objects.filter(from_user_id=pk).order_by('-created_at')
-        serializer = FollowingSerializer(friendships, many=True)
-        return Response(
-            {'followings': serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        page = self.paginate_queryset(friendships)
+        serializer = FollowingSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     # IsAuthenticated -> 如果没有登陆，会返回403 Forbidden
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
@@ -74,7 +76,10 @@ class FriendshipViewSet(viewsets.GenericViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         instance = serializer.save()  # 真的创建出来，相当于git commit
-        return Response(FollowingSerializer(instance).data, status=status.HTTP_201_CREATED)
+        return Response(
+            FollowingSerializer(instance, context={'request': request}).data,
+            status=status.HTTP_201_CREATED
+        )
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
     def unfollow(self, request, pk):
