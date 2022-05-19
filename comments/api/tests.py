@@ -153,4 +153,4 @@ class CommentApiTests(TestCase):
         self.create_newsfeed(self.bob, tweet)
         response = self.bob_client.get(NEWSFEED_LIST_API)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['newsfeeds'][0]['tweet']['comments_count'], 2)
+        self.assertEqual(response.data['results'][0]['tweet']['comments_count'], 2)
