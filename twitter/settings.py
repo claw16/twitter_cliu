@@ -159,6 +159,24 @@ is_testing = ((' '.join(sys.argv)).find('manage.py test') != -1)
 if is_testing:
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'  # local file storage
 
+# https://docs.djangoproject.com/en/3.1/topics/cache/
+# sudo apt install memcached
+# use `pip install python-memcached`
+# DO NOT pip install memcache or django-memcached
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+        'TIMEOUT': 86400,
+    },
+    'testing': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+        'TIMEOUT': 86400,
+        'KEY_PREFIX': 'testing',
+    },
+}
+
 # 把本地的设置，例如debug配置，放入local_settings.py，不push到remote repo
 # 这样在production环境中不会引入这些设置
 try:
