@@ -12,6 +12,7 @@ FOLLOWINGS_URL = '/api/friendships/{}/followings/'
 
 class FriendshipApiTests(TestCase):
     def setUp(self) -> None:
+        self.clear_cache()
         self.make_up_friendships()
         self.max_page_size = FriendshipPagination.max_page_size
         self.page_size = FriendshipPagination.page_size
