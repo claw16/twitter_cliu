@@ -12,6 +12,7 @@ READ_ALL_URL = '/api/notifications/mark-all-as-read/'
 
 class NotificationsTests(TestCase):
     def setUp(self):
+        self.clear_cache()
         self.create_user_and_client()
         self.bob_tweet = self.create_tweet(self.bob)
 

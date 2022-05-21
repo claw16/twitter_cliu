@@ -12,6 +12,7 @@ NEWSFEED_LIST_API = '/api/newsfeeds/'
 
 class LikeApiTests(TestCase):
     def setUp(self):
+        self.clear_cache()
         self.create_user_and_client()
 
     def test_tweet_likes(self):

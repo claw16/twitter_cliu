@@ -1,9 +1,7 @@
 from comments.models import Comment
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APIClient
 from testing.testcases import TestCase
-
 
 COMMENT_URL = '/api/comments/'
 TWEET_LIST_API = '/api/tweets/'
@@ -13,6 +11,7 @@ NEWSFEED_LIST_API = '/api/newsfeeds/'
 
 class CommentApiTests(TestCase):
     def setUp(self):
+        self.clear_cache()
         self.make_up_friendships()
         self.tweet = self.create_tweet(self.ann)
 

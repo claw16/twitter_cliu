@@ -6,7 +6,6 @@ from friendships.api.serializers import (
     FriendshipSerializerForCreate,
 )
 from friendships.models import Friendship
-from friendships.services import FriendshipService
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -77,7 +76,6 @@ class FriendshipViewSet(viewsets.GenericViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         instance = serializer.save()  # 真的创建出来，相当于git commit
-        FriendshipService.invalidate_following_cache(request.user.id)
         return Response(
             {'success': True},
             status=status.HTTP_201_CREATED,
@@ -104,6 +102,5 @@ class FriendshipViewSet(viewsets.GenericViewSet):
             from_user=request.user.id,
             to_user=pk,
         ).delete()
-        FriendshipService.invalidate_following_cache(request.user.id)
         return Response({'success': True, 'deleted': deleted})
 

@@ -9,6 +9,7 @@ FOLLOW_URL = '/api/friendships{}/follow/'
 
 class NewsFeedApiTests(TestCase):
     def setUp(self):
+        self.clear_cache()
         self.make_up_friendships()
 
     def test_list(self):
@@ -83,3 +84,31 @@ class NewsFeedApiTests(TestCase):
         self.assertEqual(response.data['has_next_page'], False)
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], new_newsfeed.id)
+
+    def test_user_cache(self):
+        # 测试当我们修改了 profile 之后，这个修改可以反映在所有相关的元素上
+        # newsfeed -> tweet -> user -> profile
+        profile = self.bob.profile
+        profile.nickname = 'bob_nickname'
+        profile.save()
+
+        self.assertEqual(self.ann.username, 'ann')
+        self.create_newsfeed(self.bob, self.create_tweet(self.ann))
+        self.create_newsfeed(self.bob, self.create_tweet(self.bob))
+
+        response = self.bob_client.get(NEWSFEEDS_URL)
+        results = response.data['results']
+        self.assertEqual(results[0]['tweet']['user']['username'], 'bob')
+        self.assertEqual(results[0]['tweet']['user']['nickname'], 'bob_nickname')
+        self.assertEqual(results[1]['tweet']['user']['username'], 'ann')
+
+        self.ann.username = 'new_ann'
+        self.ann.save()
+        profile.nickname = 'new_bob_nickname'
+        profile.save()
+
+        response = self.bob_client.get(NEWSFEEDS_URL)
+        results = response.data['results']
+        self.assertEqual(results[0]['tweet']['user']['username'], 'bob')
+        self.assertEqual(results[0]['tweet']['user']['nickname'], 'new_bob_nickname')
+        self.assertEqual(results[1]['tweet']['user']['username'], 'new_ann')

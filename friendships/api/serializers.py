@@ -56,7 +56,7 @@ class FriendshipSerializerForCreate(serializers.ModelSerializer):
 # 在这个例子中就是 Friendship.from_user
 # https://www.django-rest-framework.org/api-guide/serializers/#specifying-fields-explicitly
 class FollowerSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
-    user = UserSerializerForFriendship(source='from_user')
+    user = UserSerializerForFriendship(source='cached_from_user')
     created_at = serializers.DateTimeField()
     has_followed = serializers.SerializerMethodField()
 
@@ -64,12 +64,23 @@ class FollowerSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
         model = Friendship
         fields = ('user', 'created_at', 'has_followed')
 
+    """
+    查询逻辑的变化
+    before: 调用 FriendshipService.has_followed(from_user, to_user)
+    这里的from_user -> self.context['request'].user, to_user -> obj.from_user
+    after: 查看当前登陆用户的 following_user_id_set 里面有没有当前被查看用户的某位好友
+    也就是 obj.from_user_id
+    举例：我的id 9，我的关注列表 {1, 2, 3, 4, 5}，当前被查看用户(id = 10)的 followers {2, 4, 6, 8}
+    before: 9 关注了 2 -> True, 9 关注了 4 -> True, 9 没关注 6 -> False, 9 没关注 8 -> False
+    after: 2 in {1, 2, 3, 4, 5} -> True, 4 in {1, 2, 3, 4, 5} -> True, 
+            6 in {1, 2, 3, 4, 5} -> False, 8 in {1, 2, 3, 4, 5} -> False, 
+    """
     def get_has_followed(self, obj):
         return obj.from_user_id in self.following_user_id_set
 
 
 class FollowingSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
-    user = UserSerializerForFriendship(source='to_user')
+    user = UserSerializerForFriendship(source='cached_to_user')
     created_at = serializers.DateTimeField()
     has_followed = serializers.SerializerMethodField()
 
