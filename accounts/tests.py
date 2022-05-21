@@ -3,6 +3,9 @@ from accounts.models import UserProfile
 
 
 class UserProfileTests(TestCase):
+    def setUp(self):
+        self.clear_cache()
+
     def test_profile_property(self):
         ann = self.create_user('ann')
         self.assertEqual(UserProfile.objects.count(), 0)

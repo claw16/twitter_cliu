@@ -5,6 +5,7 @@ from testing.testcases import TestCase
 
 class NotificationServiceTests(TestCase):
     def setUp(self):
+        self.clear_cache()
         self.create_user_and_client()
         self.ann_tweet = self.create_tweet(self.ann)
 

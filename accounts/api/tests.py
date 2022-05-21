@@ -14,7 +14,7 @@ USER_PROFILE_DETAIL_URL = '/api/profiles/{}/'
 class AccountApiTests(TestCase):
 
     def setUp(self) -> None:
-        # This function will be called while every test function is executed
+        self.clear_cache()
         self.client = APIClient()
         self.user = self.create_user(
             username='admin',

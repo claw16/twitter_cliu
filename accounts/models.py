@@ -1,5 +1,7 @@
-from django.db import models
+from accounts.listeners import user_changed, profile_changed
 from django.contrib.auth.models import User
+from django.db import models
+from django.db.models.signals import post_save, pre_delete
 
 
 class UserProfile(models.Model):
@@ -24,13 +26,34 @@ class UserProfile(models.Model):
 # 这种写法实际上是一个利用 Python 的灵活性进行 hack 的方法，这样会方便我们通过 user 快速
 # 访问到对应的 profile 信息。
 def get_profile(user: User):
+    # import inside the function to avoid loop dependency
+    from accounts.services import UserService
+    # 如果多次对这个 object 调用，就不需要重复的查询数据库
     if hasattr(user, '_cached_user_profile'):
         return getattr(user, '_cached_user_profile')
-    profile, _ = UserProfile.objects.get_or_create(user=user)
+    # 这里用 get_or_create 是因为有可能某个 user 并没有 profile，所以 get 不到
+    # 对于这种 user，我们给它创建一个空 profile
+    # profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile = UserService.get_profile_through_cache(user.id)
     # 使用 user 对象的属性进行 cache，避免多次调用同一个 user 的 profile 时对数据库重复查询
     setattr(user, '_cached_user_profile', profile)
     return profile
 
 
 # 给 User Model 增加了一个 profile 的 property 方法用于快捷访问
+# Python 在运行的时候会 load 所有的project中的脚本，这句话就会被执行，然后就会吧这个 profile
+# 加入 User model。
+# 相当于给 User model 增加了一个 profile property。我们没有直接去 User 里面增加这个property
+# 是因为 User model 用的是 Django 自带的，不属于这个 project 的一部分。等效于：
+# class User:
+#     @property
+#     def profile(self):
+#         get_profile()
 User.profile = property(get_profile)
+
+# hook up with listeners to invalidate cache
+pre_delete.connect(user_changed, sender=User)
+post_save.connect(user_changed, sender=User)
+
+pre_delete.connect(profile_changed, sender=UserProfile)
+post_save.connect(profile_changed, sender=UserProfile)
