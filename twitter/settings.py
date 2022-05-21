@@ -155,8 +155,8 @@ STATIC_URL = '/static/'
 # 设置存储用户上传文件的 storage 文件系统
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'  # AWS S3
 # 测试环境用本地文件系统
-is_testing = ((' '.join(sys.argv)).find('manage.py test') != -1)
-if is_testing:
+TESTING = ((' '.join(sys.argv)).find('manage.py test') != -1)
+if TESTING:
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'  # local file storage
 
 # https://docs.djangoproject.com/en/3.1/topics/cache/
