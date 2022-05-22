@@ -2,6 +2,8 @@ from datetime import timedelta
 from testing.testcases import TestCase
 from tweets.constants import TweetPhotoStatus
 from tweets.models import TweetPhoto
+from utils.redis_serializers import DjangoModelSerializer
+from utils.redis_client import RedisClient
 from utils.time_helpers import utc_now
 
 
@@ -36,3 +38,17 @@ class TweetTests(TestCase):
         self.assertEqual(photo.user, self.ann)
         self.assertEqual(photo.status, TweetPhotoStatus.PENDING)
         self.assertEqual(self.tweet.tweetphoto_set.count(), 1)
+
+    def test_cache_tweet_in_redis(self):
+        tweet = self.create_tweet(self.ann)
+        serialized_data = DjangoModelSerializer.serialize(tweet)
+        conn = RedisClient.get_connection()
+        conn.set(f"tweet:{tweet.id}", serialized_data)
+        data = conn.get("tweet:notfound")
+        self.assertEqual(data, None)
+
+        data = conn.get(f"tweet:{tweet.id}")
+        deserialized_data = DjangoModelSerializer.deserialize(data)
+        # 虽然这里的 tweet 和 deserialized_data 指向的不是同一个内存地址，
+        # Django 的测试机制还是会去比较这两个 objects 的内容
+        self.assertEqual(tweet, deserialized_data)
