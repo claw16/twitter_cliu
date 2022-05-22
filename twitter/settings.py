@@ -177,6 +177,14 @@ CACHES = {
     },
 }
 
+# Redis
+# 安装方法: sudo apt-get install redis
+# 然后安装 redis 的 python 客户端： pip install redis
+REDIS_HOST = '127.0.0.1'
+REDIS_PORT = 6379
+REDIS_DB = 0 if TESTING else 1  # which db, 0: testing, 1: production
+REDIS_KEY_EXPIRE_TIME = 7 * 86400  # in seconds -> 7 days
+
 # 把本地的设置，例如debug配置，放入local_settings.py，不push到remote repo
 # 这样在production环境中不会引入这些设置
 try:
