@@ -1,4 +1,4 @@
-def push_newsfeeds_to_cache(sender, instance, created, **kwargs)
+def push_newsfeeds_to_cache(sender, instance, created, **kwargs):
     # if we changed the newsfeeds, it'll trigger post_save, because e.g.
     # newsfeed1.tweet = tweet1 -> newsfeed1.save()
     # but we only want to push new created newsfeeds to cache
