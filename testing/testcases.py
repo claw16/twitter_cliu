@@ -67,3 +67,6 @@ class TestCase(DjangoTestCase):
 
     def create_newsfeed(self, user, tweet):
         return NewsFeed.objects.create(user=user, tweet=tweet)
+
+    def create_friendship(self, from_user, to_user):
+        return Friendship.objects.create(from_user=from_user, to_user=to_user)

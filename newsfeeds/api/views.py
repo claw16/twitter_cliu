@@ -18,8 +18,13 @@ class NewsFeedViewSet(viewsets.GenericViewSet):
         return NewsFeed.objects.filter(user=self.request.user)
 
     def list(self, request):
-        newsfeeds = NewsFeedService.get_cached_newsfeeds(request.user.id)
-        page = self.paginate_queryset(newsfeeds)
+        # 因为做了 cache 长度限制，因此这里的 cached_newsfeeds 有可能是最新的 limit 个数据而不是全部数据
+        cached_newsfeeds = NewsFeedService.get_cached_newsfeeds(request.user.id)
+        page = self.paginator.paginate_cached_list(cached_newsfeeds, request)
+        # page == None 是因为请求的数据不在 cache 里，需要直接去 DB 里获取
+        if page is None:
+            queryset = NewsFeed.objects.filter(user=request.user)
+            page = self.paginate_queryset(queryset)
         serializer = NewsFeedSerializer(
             page,
             context={'request': request},

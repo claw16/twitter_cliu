@@ -10,7 +10,8 @@ class RedisHelper:
         conn = RedisClient.get_connection()
 
         serialized_list = []
-        for obj in objects:
+        # 最多只 cache REDIS_LIST_LENGTH_LIMIT 个 objects，超过的 objects 去 DB 取
+        for obj in objects[:settings.REDIS_LIST_LENGTH_LIMIT]:
             serialized_data = DjangoModelSerializer.serialize(obj)
             serialized_list.append(serialized_data)
 
@@ -53,3 +54,4 @@ class RedisHelper:
         # 如果 key 存在，那就把这次新发的帖子存入 key 对应的 list 的最左边
         serialized_data = DjangoModelSerializer.serialize(obj)
         conn.lpush(key, serialized_data)
+        conn.ltrim(key, 0, settings.REDIS_LIST_LENGTH_LIMIT - 1)
