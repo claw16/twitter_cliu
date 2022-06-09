@@ -28,26 +28,22 @@ class TweetViewSet(viewsets.GenericViewSet):
 
     @required_params(params=['user_id'])
     def list(self, request, *args, **kwargs):
-        """
-        Re-write list method, only list `user_id`'s tweets
-        """
         # if 'user_id' not in request.query_params:
         #     return Response('missing user_id', status=400)
-
-        # SQL statement:
-        # select * from twitter_tweets
-        # where user_id = xxx
-        # order by created_at desc
-        # this SQL query uses indexing (user, -created_at)
-        # indexing only (user) is not sufficient
-        # deprecated
-        # tweets = Tweet.objects.filter(
-        #     user_id=request.query_params['user_id']
-        # ).order_by('-created_at')
-        tweets = TweetService.get_cached_tweets(user_id=request.query_params['user_id'])
-        tweets = self.paginate_queryset(tweets)
+        user_id = request.query_params['user_id']
+        cached_tweets = TweetService.get_cached_tweets(user_id)
+        page = self.paginator.paginate_cached_list(cached_tweets, request)
+        if page is None:
+            # SQL statement:
+            # select * from twitter_tweets
+            # where user_id = xxx
+            # order by created_at desc
+            # this SQL query uses indexing (user, -created_at)
+            # indexing only (user) is not sufficient
+            queryset = Tweet.objects.filter(user_id=user_id).order_by('-created_at')
+            page = self.paginate_queryset(queryset)
         serializer = TweetSerializer(
-            tweets,
+            page,
             many=True,
             context={'request': request},
         )

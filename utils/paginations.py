@@ -1,4 +1,5 @@
 from dateutil import parser
+from django.conf import settings
 from rest_framework.pagination import BasePagination
 from rest_framework.response import Response
 
@@ -15,8 +16,8 @@ class EndlessPagination(BasePagination):
         pass
 
     def paginate_ordered_list(self, reverse_ordered_list, request):
-        # 刷新最新内容的时候
-        if 'created_at__gt' in request.query_params:
+        # reverse_ordered_list 是从 cache 得到的 obj list
+        if 'created_at__gt' in request.query_params:  # 刷新最新内容的时候
             # Parse an ISO-8601 datetime string into a :class:`datetime.datetime`.
             created_at__gt = parser.isoparse(request.query_params['created_at__gt'])
             objects = []
@@ -43,10 +44,6 @@ class EndlessPagination(BasePagination):
         return reverse_ordered_list[index: index + self.page_size]
 
     def paginate_queryset(self, queryset, request, view=None):
-        # 如果 queryset 是一个 list，那它不是真的queryset，而是从cache得到的数据
-        if isinstance(queryset, list):
-            return self.paginate_ordered_list(queryset, request)
-
         if 'created_at__gt' in request.query_params:
             """
             用于下拉刷新的时候加载最新的内容进来，为了简要，下拉刷新不做翻页机制，
@@ -69,6 +66,21 @@ class EndlessPagination(BasePagination):
         queryset = queryset.order_by('-created_at')[:self.page_size + 1]
         self.has_next_page = len(queryset) > self.page_size
         return queryset[:self.page_size]
+
+    def paginate_cached_list(self, cached_list, request):
+        # Video 097
+        paginated_list = self.paginate_ordered_list(cached_list, request)
+        # 如果是上翻页，paginated_list 里是所有的最新暑假，直接返回
+        if 'created_at__gt' in request.query_params:
+            return paginated_list
+        # 如果还有下一页，说明 cached_list 里面的数据还没取完，也直接返回
+        if self.has_next_page:
+            return paginated_list
+        # 如果 cached_list 的长度不组最大限制，说明 cached_list 里已经是所有数据了
+        if len(cached_list) < settings.REDIS_LIST_LENGTH_LIMIT:
+            return paginated_list
+        # 如果进入这里，说明可能存在在数据库里没有 load 进 cache 的数据，需要直接去数据库查询
+        return None
 
     def get_paginated_response(self, data):
         return Response({
