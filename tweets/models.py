@@ -20,6 +20,11 @@ class Tweet(models.Model):
     content = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # 新增的 field 一定要加 null=True， 否则 default = 0 会遍历整个表单
+    # 导致 migration 非常慢， migration 会锁死表单， 使得用户无法进行 tweet 相关的操作
+    likes_count = models.IntegerField(null=True, default=0)
+    comments_count = models.IntegerField(null=True, default=0)
+
     class Meta:
         # 这个联合索引可以方便地找出某个user发的所有的帖子
         index_together = (('user', 'created_at'),)
