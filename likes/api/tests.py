@@ -1,5 +1,6 @@
-from testing.testcases import TestCase
 from rest_framework import status
+from rest_framework.test import APIClient
+from testing.testcases import TestCase
 
 
 LIKE_BASE_URL = '/api/likes/'
@@ -233,3 +234,45 @@ class LikeApiTests(TestCase):
         self.assertEqual(tweet.likes_count, 0)
         response = self.bob_client.get(tweet_url)
         self.assertEqual(response.data['likes_count'], 0)
+
+    def test_likes_count_with_cache(self):
+        tweet = self.create_tweet(self.ann)
+        data = {'content_type': 'tweet', 'object_id': tweet.id}
+        self.create_newsfeed(self.ann, tweet)
+        self.create_newsfeed(self.bob, tweet)
+        tweet_url = TWEET_DETAIL_API.format(tweet.id)
+
+        for i in range(3):
+            user = self.create_user(f'user_{i}')
+            user_client = APIClient()
+            user_client.force_authenticate(user)
+            user_client.post(LIKE_BASE_URL, data)
+            # check likes_count in tweet
+            response = self.anonymous_client.get(tweet_url)
+            self.assertEqual(response.data['likes_count'], i + 1)
+            tweet.refresh_from_db()
+            self.assertEqual(tweet.likes_count, i + 1)
+
+        self.bob_client.post(LIKE_BASE_URL, data)
+        response = self.anonymous_client.get(tweet_url)
+        self.assertEqual(response.data['likes_count'], 4)
+        tweet.refresh_from_db()
+        self.assertEqual(tweet.likes_count, 4)
+
+        # check likes_count in newsfeed
+        newsfeed_url = '/api/newsfeeds/'
+        response = self.ann_client.get(newsfeed_url)
+        self.assertEqual(response.data['results'][0]['tweet']['likes_count'], 4)
+        response = self.bob_client.get(newsfeed_url)
+        self.assertEqual(response.data['results'][0]['tweet']['likes_count'], 4)
+
+        # Bob cancelled his like
+        self.bob_client.post(LIKE_BASE_URL + 'cancel/', data)
+        tweet.refresh_from_db()
+        self.assertEqual(tweet.likes_count, 3)
+        response = self.anonymous_client.get(tweet_url)
+        self.assertEqual(response.data['likes_count'], 3)
+        response = self.ann_client.get(newsfeed_url)
+        self.assertEqual(response.data['results'][0]['tweet']['likes_count'], 3)
+        response = self.bob_client.get(newsfeed_url)
+        self.assertEqual(response.data['results'][0]['tweet']['likes_count'], 3)

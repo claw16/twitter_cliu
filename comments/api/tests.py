@@ -1,6 +1,7 @@
 from comments.models import Comment
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.test import APIClient
 from testing.testcases import TestCase
 
 COMMENT_URL = '/api/comments/'
@@ -153,3 +154,43 @@ class CommentApiTests(TestCase):
         response = self.bob_client.get(NEWSFEED_LIST_API)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['results'][0]['tweet']['comments_count'], 2)
+
+    def test_comments_count_with_cache(self):
+        tweet_url = '/api/tweets/{}/'.format(self.tweet.id)
+        response = self.anonymous_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 0)
+        self.assertEqual(self.tweet.comments_count, 0)
+
+        data = {'tweet_id': self.tweet.id, 'content': 'a comment'}
+        for i in range(2):
+            user = self.create_user(f'user_{i}')
+            user_client = APIClient()
+            user_client.force_authenticate(user)
+            user_client.post(COMMENT_URL, data)
+            response = self.anonymous_client.get(tweet_url)
+            self.assertEqual(response.data['comments_count'], i + 1)
+            self.tweet.refresh_from_db()
+            self.assertEqual(self.tweet.comments_count, i + 1)
+
+        comment_data = self.bob_client.post(COMMENT_URL, data).data
+        response = self.anonymous_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 3)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 3)
+
+        # update comment shouldn't update comments_count
+        comment_url = '{}{}/'.format(COMMENT_URL, comment_data['id'])
+        response = self.bob_client.put(comment_url, {'content': 'updated'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.anonymous_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 3)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 3)
+
+        # delete a comment will update comments_count
+        response = self.bob_client.delete(comment_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.anonymous_client.get(tweet_url)
+        self.assertEqual(response.data['comments_count'], 2)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 2)
