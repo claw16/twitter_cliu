@@ -55,3 +55,49 @@ class RedisHelper:
         serialized_data = DjangoModelSerializer.serialize(obj)
         conn.lpush(key, serialized_data)
         conn.ltrim(key, 0, settings.REDIS_LIST_LENGTH_LIMIT - 1)
+
+    @classmethod
+    def get_count_key(cls, obj, attr):
+        # attr -> an attr name of a model, e.g. Tweet model's 'likes_count'
+        return '{}.{}:{}'.format(obj.__class__.__name__, attr, obj.id)
+
+    @classmethod
+    def incr_count(cls, obj, attr):
+        conn = RedisClient.get_connection()
+        key = cls.get_count_key(obj, attr)
+        # cache miss - back-fill cache from db
+        # 这里不执行 +1 操作，因为在调用 incr_count() 之前已经完成了 +1
+        if not conn.exists(key):
+            obj.refresh_from_db()
+            conn.set(key, getattr(obj, attr))
+            conn.expire(key, settings.REDIS_KEY_EXPIRE_TIME)
+            return getattr(obj, attr)
+        # cache hit - return the value (after increment)
+        return conn.incr(key)
+
+    @classmethod
+    def decr_count(cls, obj, attr):
+        conn = RedisClient.get_connection()
+        key = cls.get_count_key(obj, attr)
+        # cache miss
+        if not conn.exists(key):
+            obj.refresh_from_db()
+            conn.set(key, getattr(obj, attr))
+            conn.expire(key, settings.REDIS_KEY_EXPIRE_TIME)
+            return getattr(obj, attr)
+        # cache hit
+        return conn.decr(key)
+
+    @classmethod
+    def get_count(cls, obj, attr):
+        conn = RedisClient.get_connection()
+        key = cls.get_count_key(obj, attr)
+        count = conn.get(key)
+        # cache hit
+        if count is not None:
+            return int(count)  # TODO: why int?
+        # cache miss
+        obj.refresh_from_db()
+        count = getattr(obj, attr)
+        conn.set(key, count)
+        return count

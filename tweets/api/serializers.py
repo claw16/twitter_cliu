@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from tweets.constants import TWEET_PHOTO_UPLOAD_LIMIT
 from tweets.models import Tweet
 from tweets.serivces import TweetService
+from utils.redis_helper import RedisHelper
 
 
 class TweetSerializer(serializers.ModelSerializer):
@@ -30,10 +31,13 @@ class TweetSerializer(serializers.ModelSerializer):
         )
 
     def get_likes_count(self, obj):
-        return obj.like_set.count()
+        # 这里的优化，从之前的 obj.like_set.count() | SELECT COUNT(*)
+        # 变成了 Redis get, 虽然还是 N + 1 Queries， 但是
+        # N 次 db queries 变成了 N 次 cache queries
+        return RedisHelper.get_count(obj, 'likes_count')
 
     def get_comments_count(self, obj):
-        return obj.comment_set.count()
+        return RedisHelper.get_count(obj, 'comments_count')
 
     def get_has_liked(self, obj):
         return LikeService.has_liked(self.context['request'].user, obj)
