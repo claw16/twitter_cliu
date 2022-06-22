@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
+from kombu import Queue
 from pathlib import Path
 import sys
 
@@ -194,6 +195,10 @@ CELERY_TIMEZONE = "UTC"
 # 1 -> 将celery的worker跑起来。这里的效果就是当测试的时候，我们的异步任务还是以同步的形式执行。
 # 在production的时候才真的跑异步任务。
 CELERY_TASK_ALWAYS_EAGER = TESTING
+CELERY_QUEUES = {
+    Queue('default', routing_key='default'),
+    Queue('newsfeeds', routing_key='newsfeeds'),
+}
 
 # 把本地的设置，例如debug配置，放入local_settings.py，不push到remote repo
 # 这样在production环境中不会引入这些设置
