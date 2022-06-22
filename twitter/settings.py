@@ -186,6 +186,13 @@ REDIS_DB = 0 if TESTING else 1  # which db, 0: testing, 1: production
 REDIS_KEY_EXPIRE_TIME = 7 * 86400  # in seconds -> 7 days
 REDIS_LIST_LENGTH_LIMIT = 1000 if not TESTING else 20
 
+# Celery Configuration Options
+# 使用如下命令把 worker 进程（只执行异步任务的进程，可以在不同的机器上）单独跑起来
+# celery -A twitter worker -l INFO
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/2' if not TESTING else 'redis://127.0.0.1:6379/0'
+CELERY_TIMEZONE = "UTC"
+CELERY_TASK_ALWAYS_EAGER = TESTING
+
 # 把本地的设置，例如debug配置，放入local_settings.py，不push到remote repo
 # 这样在production环境中不会引入这些设置
 try:
