@@ -1,7 +1,9 @@
+from django.utils.decorators import method_decorator
 from inbox.api.serializers import (
     NotificationSerializer,
     NotificationSerializerForUpdate,
 )
+from ratelimit.decorators import ratelimit
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -28,16 +30,19 @@ class NotificationViewSet(
     # 默认的 URL 规则是不用下划线的，而 Python function 名字又不能用 dash -
     # GET /api/notifications/unread-count/
     @action(methods=['GET'], detail=False, url_path='unread-count')
+    @method_decorator(ratelimit(key='user', rate='3/s', method='GET', block=True))
     def unread_count(self, request, *args, **kwargs):
         count = self.get_queryset().filter(unread=True).count()
         return Response({'unread_count': count}, status=status.HTTP_200_OK)
 
     @action(methods=['POST'], detail=False, url_path='mark-all-as-read')
+    @method_decorator(ratelimit(key='user', rate='3/s', method='POST', block=True))
     def mark_all_as_read(self, request, *args, **kwargs):
         updated_count = self.get_queryset().filter(unread=True).update(unread=False)
         return Response({'marked_count': updated_count}, status=status.HTTP_200_OK)
 
     @required_params(method='PUT', params=['unread'])
+    @method_decorator(ratelimit(key='user', rate='3/s', method='POST', block=True))
     def update(self, request, *args, **kwargs):
         """
         PUT /api/notifications/1/ 传入 unread = True/False 来更新

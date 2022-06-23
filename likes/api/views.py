@@ -1,3 +1,4 @@
+from django.utils.decorators import method_decorator
 from inbox.services import NotificationService
 from likes.api.serializers import (
     LikeSerializer,
@@ -5,6 +6,7 @@ from likes.api.serializers import (
     LikeSerializerForCreate,
 )
 from likes.models import Like
+from ratelimit.decorators import ratelimit
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -17,7 +19,11 @@ class LikeViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = LikeSerializerForCreate
 
+    # decorator 的顺序是可以调整的，最终的结果是一样的，但是这里 @required_params 在前是有意义的
+    # @required_params 只是对 request 这个参数做一些检查，如果检查不通过就抛出异常
+    # ratelimit 会对 cache 进行读写，相比 @required_params 会产生额外的时间耗费，所以应该放在后面
     @required_params(method='POST', params=['content_type', 'object_id'])
+    @method_decorator(ratelimit(key='user', rate='10/s', method='POST', block=True))
     def create(self, request, *args, **kwargs):
         serializer = LikeSerializerForCreate(
             data=request.data,
@@ -39,6 +45,7 @@ class LikeViewSet(viewsets.GenericViewSet):
 
     @action(methods=['POST'], detail=False)
     @required_params(method='POST', params=['content_type', 'object_id'])
+    @method_decorator(ratelimit(key='user', rate='10/s', method='POST', block=True))
     def cancel(self, request, *args, **kwargs):
         serializer = LikeSerializerForCancel(
             data=request.data,

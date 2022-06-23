@@ -59,6 +59,10 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend', ],
+    # Override the default Error handler for ratelimit, because by default the status code
+    # for massive requests is 403 Forbidden, but 429 Too Many Requests is more suitable
+    # TODO: read django-ratelimit src, implement token method
+    'EXCEPTION_HANDLER': 'utils.ratelimit.exception_handler',
 }
 
 MIDDLEWARE = [
@@ -168,13 +172,19 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
         'LOCATION': '127.0.0.1:11211',
-        'TIMEOUT': 86400,
+        'TIMEOUT': 86400,  # 24 hours -> 1 day
     },
     'testing': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
         'LOCATION': '127.0.0.1:11211',
         'TIMEOUT': 86400,
         'KEY_PREFIX': 'testing',
+    },
+    'ratelimit': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+        'TIMEOUT': 86400 * 7,
+        'KEY_PREFIX': 'rl',
     },
 }
 
@@ -199,6 +209,11 @@ CELERY_QUEUES = {
     Queue('default', routing_key='default'),
     Queue('newsfeeds', routing_key='newsfeeds'),
 }
+
+# Rate Limiter
+RATELIMIT_USE_CACHE = 'ratelimit'
+RATELIMIT_CACHE_PREFIX = 'rl:'   # 避免和其他的 key 冲突
+RATELIMIT_ENABLE = not TESTING  # 在某些环境下，比如内部测试等环境下，一般也会关掉
 
 # 把本地的设置，例如debug配置，放入local_settings.py，不push到remote repo
 # 这样在production环境中不会引入这些设置

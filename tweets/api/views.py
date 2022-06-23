@@ -1,3 +1,6 @@
+from django.utils.decorators import method_decorator
+from newsfeeds.services import NewsFeedService
+from ratelimit.decorators import ratelimit
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -8,7 +11,6 @@ from tweets.api.serializers import (
 )
 from tweets.models import Tweet
 from tweets.serivces import TweetService
-from newsfeeds.services import NewsFeedService
 from utils.decorators import required_params
 from utils.paginations import EndlessPagination
 
@@ -52,6 +54,8 @@ class TweetViewSet(viewsets.GenericViewSet):
         # return Response({'tweets': serializer.data})
         return self.get_paginated_response(serializer.data)
 
+    @method_decorator(ratelimit(key='user', rate='1/s', method='POST', block=True))
+    @method_decorator(ratelimit(key='user', rate='5/m', method='POST', block=True))
     def create(self, request, *args, **kwargs):
         """
         Re-write create method to use current login user
@@ -71,6 +75,7 @@ class TweetViewSet(viewsets.GenericViewSet):
         NewsFeedService.fanout_to_followers(tweet)
         return Response(TweetSerializer(tweet, context={'request': request}).data, status=201)
 
+    @method_decorator(ratelimit(key='user_or_ip', rate='5/s', method='GET', block=True))
     def retrieve(self, request, *args, **kwargs):
         # <HOMEWORK 1> 通过某个query参数with_all_comments来决定是否需要带上所有comments
         # <HOMEWORK 2> 通过某个query参数with_preview_comments来决定是否带上前3条comments
