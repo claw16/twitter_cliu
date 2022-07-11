@@ -2,7 +2,7 @@
 .vagrant
 Vagrantfile
 media/
-hbase-2.4.4/
+hbase-2.4.12/
 .DS_Store
 jdk-8u291-linux-x64.tar.gz
 hbase-2.4.4-bin.tar.gz

@@ -215,6 +215,9 @@ RATELIMIT_USE_CACHE = 'ratelimit'
 RATELIMIT_CACHE_PREFIX = 'rl:'   # 避免和其他的 key 冲突
 RATELIMIT_ENABLE = not TESTING  # 在某些环境下，比如内部测试等环境下，一般也会关掉
 
+# HBase Database
+HBASE_HOST = '127.0.0.1'
+
 # 把本地的设置，例如debug配置，放入local_settings.py，不push到remote repo
 # 这样在production环境中不会引入这些设置
 try:
