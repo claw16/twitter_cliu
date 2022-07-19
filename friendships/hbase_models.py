@@ -1,7 +1,7 @@
 from django_hbase import models
 
 
-class   HBaseFollowing(models.HBaseModel):
+class HBaseFollowing(models.HBaseModel):
     """
     存储 from_user_id follow 了哪些人，row_key 按照 from_user_id + created_at 排序
     可以支持查询：
