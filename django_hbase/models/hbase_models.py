@@ -1,3 +1,4 @@
+from django.conf import settings
 from django_hbase.models import HBaseField, IntegerField, TimestampField
 from django_hbase.client import HBaseClient
 
@@ -125,15 +126,48 @@ class HBaseModel:
             # remove column family
             column_key = column_key.decode('utf-8')
             key = column_key[column_key.find(':') + 1:]
-            data[key] = cls.desrialize_field(key, column_value)
+            data[key] = cls.deserialize_field(key, column_value)
         return cls(**data)
+
+    @classmethod
+    def get_table_name(cls):
+        if not cls.Meta.table_name:
+            raise NotImplementedError('Missing table_name in HBaseModel meta class.')
+        if settings.TESTING:
+            return f'test_{cls.Meta.table_name}'
+        return cls.Meta.table_name
 
     @classmethod
     def get_table(cls):
         conn = HBaseClient.get_connection()
-        if not cls.Meta.table_name:
-            raise NotImplementedError('Missing table_name in HBaseModel meta class.')
-        return conn.table(cls.Meta.table_name)
+        return conn.table(cls.get_table_name())
+
+    @classmethod
+    def drop_table(cls):
+        if not settings.TESTING:
+            raise Exception('You can only drop tables in unit tests.')
+        conn = HBaseClient.get_connection()
+        # delete_table() will drop a table if exists, otherwise do nothing
+        conn.delete_table(cls.get_table_name(), True)
+
+    @classmethod
+    def create_table(cls):
+        if not settings.TESTING:
+            raise Exception('You can only create tables in unit tests.')
+        conn = HBaseClient.get_connection()
+        # conn.tables() returns a list of table names in bytes format,
+        # e.g. [b'test_tweets'], however our table name is str 'test_tweets',
+        # consequently if we don't decode the bytes, 'test_tweets' in [b'test_tweets']
+        # will return False.
+        tables = [table.decode('utf-8') for table in conn.tables()]
+        if cls.get_table_name() in tables:  # if the table exists, we don't duplicate it
+            return
+        column_families = {
+            field.column_family: dict()
+            for key, field in cls.get_field_hash().items()
+            if field.column_family is not None
+        }
+        conn.create_table(cls.get_table_name(), column_families)
 
     @property
     def row_key(self):
@@ -141,6 +175,15 @@ class HBaseModel:
 
     @classmethod
     def get_field_hash(cls):
+        """
+        Traverse an HBaseModel's attributes, get all the HBaseField ones.
+        Example - HBaseFollower:
+            field_bash = {
+                'to_user_id': models.IntegerField(reverse=True),
+                'created_at': models.TimestampField()
+                'from_user_id': models.IntegerField(column_family='cf')
+            }
+        """
         field_hash = {}
         for field in cls.__dict__:
             field_obj = getattr(cls, field)
