@@ -1,0 +1,56 @@
+version: '3'
+
+services:
+  db:
+    image: arm64v8/mysql:8
+    container_name: mysql
+    volumes:
+      - ./data/db:/var/lib/mysql
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --sort_buffer_size=1073741824
+    restart: always
+    environment:  # one might want to change the username and password here
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/var/lib/redis
+  memcached:
+    image: memcached:latest
+    container_name: memcached
+    restart: always
+    ports:
+      - "11211:11211"
+  django:
+    build: .
+    container_name: django
+    volumes:
+      - .:/code
+    entrypoint: ["/code/wait-for-it.sh", "db:3306", "--"]
+    command: sh -c "/code/start-django.sh"
+    restart: always
+    ports:
+      - "9090:9090"
+    environment:  # if username and password are changed in db, change these accordingly
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=db
+    depends_on:
+      - db
+      - redis
+      - memcached
+    links:
+      - db
+      - redis
+      - memcached

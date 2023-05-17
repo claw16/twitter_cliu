@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from kombu import Queue
 from pathlib import Path
+import os
 import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,9 +28,9 @@ SECRET_KEY = 't3ku3pa#9ynw(g3lc_)u*og8s!l!j51x+d@cg7t9@3c!2@yk5)'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '172.17.0.1']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '172.20.0.5']
 # INTERNAL_IPS
-INTERNAL_IPS = ['127.0.0.1', 'localhost', '172.17.0.1']
+INTERNAL_IPS = ['127.0.0.1', 'localhost', '172.20.0.5']
 
 # Application definition
 
@@ -103,11 +104,11 @@ WSGI_APPLICATION = 'twitter.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'twitter',
-        'HOST': '0.0.0.0',
-        'PORT': '3306',
-        'USER': 'root',
-        'PASSWORD': 'liuchao9',
+        'NAME': os.getenv('MYSQL_DATABASE'),
+        'HOST': 'db',
+        'PORT': os.getenv('MYSQL_PORT'),
+        'USER': os.getenv('MYSQL_USER'),
+        'PASSWORD': os.getenv('MYSQL_PASSWORD'),
     }
 }
 
@@ -171,18 +172,18 @@ if TESTING:
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '127.0.0.1:11211',
+        'LOCATION': 'memcached:11211',
         'TIMEOUT': 86400,  # 24 hours -> 1 day
     },
     'testing': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '127.0.0.1:11211',
+        'LOCATION': 'memcached:11211',
         'TIMEOUT': 86400,
         'KEY_PREFIX': 'testing',
     },
     'ratelimit': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '127.0.0.1:11211',
+        'LOCATION': 'memcached:11211',
         'TIMEOUT': 86400 * 7,
         'KEY_PREFIX': 'rl',
     },
@@ -191,7 +192,7 @@ CACHES = {
 # Redis
 # 安装方法: sudo apt-get install redis
 # 然后安装 redis 的 python 客户端： pip install redis
-REDIS_HOST = '127.0.0.1'
+REDIS_HOST = 'redis'  # '127.0.0.1'
 REDIS_PORT = 6379
 REDIS_DB = 0 if TESTING else 1  # which db, 0: testing, 1: production
 REDIS_KEY_EXPIRE_TIME = 7 * 86400  # in seconds -> 7 days
@@ -200,7 +201,7 @@ REDIS_LIST_LENGTH_LIMIT = 1000 if not TESTING else 20
 # Celery Configuration Options
 # 使用如下命令把 worker 进程（只执行异步任务的进程，可以在不同的机器上）单独跑起来
 # celery -A twitter worker -l INFO
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/2' if not TESTING else 'redis://127.0.0.1:6379/0'
+CELERY_BROKER_URL = 'redis://redis:6379/2' if not TESTING else 'redis://redis:6379/0'
 CELERY_TIMEZONE = "UTC"
 # 1 -> 将celery的worker跑起来。这里的效果就是当测试的时候，我们的异步任务还是以同步的形式执行。
 # 在production的时候才真的跑异步任务。
